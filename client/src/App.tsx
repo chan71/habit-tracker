@@ -17,7 +17,11 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="container py-8">
+          <Router />
+        </div>
+      </div>
       <Toaster />
     </QueryClientProvider>
   );
