@@ -59,14 +59,16 @@ export default function HabitRow({ habit, weekDays }: HabitRowProps) {
         {weekDays.map(({ date }) => (
           <div key={date} className="border-l p-3 text-center">
             <button
-              className={`w-8 h-8 rounded-full transition-colors ${
+              className={`w-8 h-8 rounded-full transition-colors flex items-center justify-center ${
                 habit.completedDays.includes(date)
                   ? "bg-primary/10"
                   : "hover:bg-primary/5"
               }`}
               onClick={() => toggleMutation.mutate(date)}
             >
-              {habit.completedDays.includes(date) && habit.emoji}
+              <span className="flex items-center justify-center">
+                {habit.completedDays.includes(date) && habit.emoji}
+              </span>
             </button>
           </div>
         ))}
