@@ -1,4 +1,6 @@
 import { habits, type Habit, type InsertHabit } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   getHabits(): Promise<Habit[]>;
@@ -7,64 +9,43 @@ export interface IStorage {
   toggleHabitCompletion(id: number, date: string): Promise<Habit>;
 }
 
-export class MemStorage implements IStorage {
-  private habits: Map<number, Habit>;
-  currentId: number;
-
-  constructor() {
-    this.habits = new Map();
-    this.currentId = 1;
-    
-    // Add example habits
-    const examples = [
-      { name: "Journal", emoji: "📓" },
-      { name: "Lift", emoji: "🏋️" },
-      { name: "Yoga", emoji: "🧘" },
-      { name: "Drink water", emoji: "💧" },
-      { name: "Walk the dog", emoji: "🐕" },
-      { name: "Plant care", emoji: "🪴" },
-      { name: "Skin care", emoji: "🧴" },
-      { name: "Read", emoji: "📚" },
-      { name: "8hrs of sleep", emoji: "💤" }
-    ];
-
-    examples.forEach(h => {
-      this.createHabit(h);
-    });
-  }
-
+export class DatabaseStorage implements IStorage {
   async getHabits(): Promise<Habit[]> {
-    return Array.from(this.habits.values());
+    return await db.select().from(habits);
   }
 
   async createHabit(insertHabit: InsertHabit): Promise<Habit> {
-    const id = this.currentId++;
-    const habit: Habit = { ...insertHabit, id, completedDays: [] };
-    this.habits.set(id, habit);
+    const [habit] = await db
+      .insert(habits)
+      .values({ ...insertHabit, completedDays: [] })
+      .returning();
     return habit;
   }
 
   async deleteHabit(id: number): Promise<void> {
-    this.habits.delete(id);
+    await db.delete(habits).where(eq(habits.id, id));
   }
 
   async toggleHabitCompletion(id: number, date: string): Promise<Habit> {
-    const habit = this.habits.get(id);
+    const [habit] = await db.select().from(habits).where(eq(habits.id, id));
     if (!habit) throw new Error("Habit not found");
-    
+
     const completedDays = [...habit.completedDays];
     const index = completedDays.indexOf(date);
-    
+
     if (index === -1) {
       completedDays.push(date);
     } else {
       completedDays.splice(index, 1);
     }
 
-    const updated = { ...habit, completedDays };
-    this.habits.set(id, updated);
+    const [updated] = await db
+      .update(habits)
+      .set({ completedDays })
+      .where(eq(habits.id, id))
+      .returning();
     return updated;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
